@@ -1512,6 +1512,10 @@ extension SMB2Manager {
             result[.pathKey] =
                 path.fileURL().appendingPathComponent(name, isDirectory: ent.st.isDirectory).path
             ent.st.populateResourceValue(&result)
+            let attrs: SMB2FileHandle.Attributes = ent.attributes
+            result[.isHiddenKey]           = attrs.contains(.hidden) ||
+                                             name.hasPrefix(".")
+            result[.isSystemImmutableKey]  = attrs.contains(.system)
             contents.append(result)
         }
 
