@@ -1499,40 +1499,52 @@ extension SMB2Manager {
 }
 
 extension SMB2Manager {
-    private func listDirectory(client: SMB2Client, path: String, recursive: Bool) throws
-        -> [[URLResourceKey: any Sendable]]
-    {
+    private func listDirectory(
+        client: SMB2Client,
+        path: String,
+        recursive: Bool
+    ) throws -> [[URLResourceKey: any Sendable]] {
+
         var contents = [[URLResourceKey: any Sendable]]()
         let dir = try SMB2Directory(path.canonical, on: client)
+
         for ent in dir {
             let name = String(cString: ent.name)
             if [".", ".."].contains(name) { continue }
-            var result = [URLResourceKey: any Sendable]()
-            result[.nameKey] = name
-            result[.pathKey] =
-                path.fileURL().appendingPathComponent(name, isDirectory: ent.st.isDirectory).path
-            ent.st.populateResourceValue(&result)
-            let attrs: SMB2FileHandle.Attributes = ent.attributes
-            result[.isHiddenKey]           = attrs.contains(.hidden) ||
-                                             name.hasPrefix(".")
-            result[.isSystemImmutableKey]  = attrs.contains(.system)
-            contents.append(result)
+
+            let rawAttr = ent.st.smb2_attributes
+            let attrs = SMB2FileHandle.Attributes(rawValue: rawAttr)
+
+            // ── 2.  фільтр "видимих" (можна прибрати, якщо потрібні всі записи)
+            guard !name.hasPrefix(".") || attrs.contains(.hidden) == false else { continue }
+
+            var item = [URLResourceKey: any Sendable]()
+            item[.nameKey]  = name
+            item[.pathKey]  = path.fileURL()
+                .appendingPathComponent(name, isDirectory: ent.st.isDirectory)
+                .path
+            ent.st.populateResourceValue(&item)
+
+            // ── 3.  нові ключі, якими ви потім користуватиметесь
+            item[.isHiddenKey]          = attrs.contains(.hidden)  // Bool
+            item[.isSystemImmutableKey] = attrs.contains(.system)
+
+            contents.append(item)
         }
 
+        // ── рекурсивний прохід
         if recursive {
-            let subDirectories = contents.filter(\.isDirectory)
-
-            for subDir in subDirectories {
-                try contents.append(
-                    contentsOf: listDirectory(
-                        client: client, path: subDir.path.unwrap(), recursive: true
-                    )
+            for sub in contents.filter(\.isDirectory) {
+                try contents += listDirectory(
+                    client: client,
+                    path: sub.path.unwrap(),
+                    recursive: true
                 )
             }
         }
-
         return contents
     }
+
 
     private func recursiveCopyIterator(
         client: SMB2Client, fromPath path: String, toPath: String, recursive: Bool,
