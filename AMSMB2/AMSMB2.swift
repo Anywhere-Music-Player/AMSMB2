@@ -1512,11 +1512,11 @@ extension SMB2Manager {
             let name = String(cString: ent.name)
             if [".", ".."].contains(name) { continue }
 
-            let rawAttr = ent.st.smb2_attributes
+            let rawAttr = ent.st.attributes
             let attrs = SMB2FileHandle.Attributes(rawValue: rawAttr)
 
             // ── 2.  фільтр "видимих" (можна прибрати, якщо потрібні всі записи)
-            guard !name.hasPrefix(".") || attrs.contains(.hidden) == false else { continue }
+            guard !name.hasPrefix(".") || attrs.contains(SMB2FileHandle.Attributes.hidden) == false else { continue }
 
             var item = [URLResourceKey: any Sendable]()
             item[.nameKey]  = name
@@ -1526,8 +1526,8 @@ extension SMB2Manager {
             ent.st.populateResourceValue(&item)
 
             // ── 3.  нові ключі, якими ви потім користуватиметесь
-            item[.isHiddenKey]          = attrs.contains(.hidden)  // Bool
-            item[.isSystemImmutableKey] = attrs.contains(.system)
+            item[.isHiddenKey]          = attrs.contains(SMB2FileHandle.Attributes.hidden)
+            item[.isSystemImmutableKey] = attrs.contains(SMB2FileHandle.Attributes.system)
 
             contents.append(item)
         }
