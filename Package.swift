@@ -4,9 +4,8 @@ import PackageDescription
 let package = Package(
     name: "AMSMB2",
     platforms: [
-        .iOS(.v13),
-        .macOS(.v10_15),
-        .macCatalyst(.v13),
+        .iOS(.v17),
+        .macOS(.v14),
         .tvOS(.v14),
         .watchOS(.v6),
         .visionOS(.v1),
