@@ -14,7 +14,6 @@ let package = Package(
     products: [
         .library(
             name: "AMSMB2",
-            type: .dynamic,
             targets: ["AMSMB2"]
         ),
     ],
